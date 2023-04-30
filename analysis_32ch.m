@@ -47,16 +47,16 @@ alpha = datafilter(data(:,2),8,15,fs);
 
 t = 0 : 1/fs : (length(alpha)-1)/fs;
 
-% これとキューのタイミングの差がRT
-move_onset = zeros(1,20);
 
-cnt = 1;
+move_onset = zeros(1,20);
+count = 1;
+
 
 for j = 1:length(t)
     if j >= mod_cuestime(i) 
         if abs(EMG) > 0.5 
             move_onset(i) = t(i);
-            cnt = cnt + 1; 
+            count = count + 1; 
             break
         end
     end
