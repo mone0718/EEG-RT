@@ -14,6 +14,7 @@ if fname == 0
 end
 
 load([pname fname]);
+disp(fname)
 
 % 地域周波数
 filtered_data = data;
@@ -26,14 +27,15 @@ end
 
 Force = filtered_data(:,1);
 EMG = filtered_data(:,7);
+EEG = filtered_data(:,2) - (filtered_data(:,3)+filtered_data(:,4)+filtered_data(:,5)+filtered_data(:,6))/4;
 
 % EEG α帯
-EEG_alpha = datafilter(data,8,15,fs);
-alpha = EEG_alpha(:,2) - (EEG_alpha(:,3) + EEG_alpha(:,4) + EEG_alpha(:,5) + EEG_alpha(:,6));
+EEG_alpha = datafilter(data,8,15,fs)*100;
+alpha = EEG_alpha(:,2) - (EEG_alpha(:,3) + EEG_alpha(:,4) + EEG_alpha(:,5) + EEG_alpha(:,6))/4;
 
 % β帯
-EEG_beta = datafilter(data,15,35,fs);
-beta = EEG_beta(:,2) - (EEG_beta(:,3) + EEG_beta(:,4) + EEG_beta(:,5) + EEG_beta(:,6));
+EEG_beta = datafilter(data,15,35,fs)*100;
+beta = EEG_beta(:,2) - (EEG_beta(:,3) + EEG_beta(:,4) + EEG_beta(:,5) + EEG_beta(:,6))/4;
 
 t = 0:1/fs:(length(alpha)-1)/fs;
 
@@ -58,19 +60,40 @@ t = 0:1/fs:(length(alpha)-1)/fs;
 % 生データ 1試行ごとにキー操作で見れるようにしたい
 
 % EMGで判定(キューの直前3秒くらいの平均から+10SD(？))
-move_onset = zeros(1,21);
+move_onset = zeros(1,20);
+RT = zeros(1,20);
 
 aveEMG = (EMG-mean(EMG))*1000; % トレンド除去
 rEMG = abs(aveEMG); % 全波整流
 
 x_EMG = rEMG';
 
+SD = zeros(1,20);
+Mean = zeros(1,20);
+
+
+
 % キューの3秒前のrEMGの平均と標準偏差
 for trial_num = 1:20
-    j_start = cue_time(trial_num) * fs - 300 + 1;
-    j_end = cue_time(trial_num) * fs;
+    judge_start = round(cue_time(trial_num) * fs - 3000 + 1);
+    judge_end = round(cue_time(trial_num) * fs);
 
-    [SD,Mean] = std(rEMG(j_start:j_end));
+    [SD(trial_num),Mean(trial_num)] = std(rEMG(judge_start:judge_end));
+
+    cnt = judge_end;
+    reac_flag = false;
+
+    while ~reac_flag
+
+        cnt = cnt + 1;
+        
+        if rEMG(cnt) > SD(trial_num)*10
+            move_onset(trial_num) = cnt/fs;
+            RT(trial_num) = move_onset(trial_num) - cue_time(trial_num);
+            reac_flag = true; 
+        end
+        
+    end
 end
 
 % cnt = 1;
@@ -102,25 +125,52 @@ subplot(3,1,1);
 plot(t,rEMG,'linewidth',1.3);
 xlim([0 length(alpha)/fs]);
 xline(cue_time);
-% xline(move_onset,'-.');
+xline(move_onset,'-.');
 title('rEMG');
 
 subplot(3,1,2);
-plot(t,alpha*10,'linewidth',1.3);
+plot(t,alpha,'linewidth',1.3);
 xlim([0 length(alpha)/fs]); 
 xline(cue_time);
-% xline(move_onset,'-.');
+xline(move_onset,'-.');
 title('alpha');
 
 subplot(3,1,3);
-plot(t,beta*10,'linewidth',1.3);
+plot(t,beta,'linewidth',1.3);
 xlim([0 length(alpha)/fs]);
 xline(cue_time);
-% xline(move_onset,'-.');
+xline(move_onset,'-.');
 title('beta');
 
 %% rest EEG
 
+% 1試行ごとにキー操作で見れるようにしたい
+
+% EMGで判定(キューの直前3秒くらいの平均から+10SD(？))
+
+aveEMG = (EMG-mean(EMG))*1000; % トレンド除去
+rEMG = abs(aveEMG); % 全波整流
+
+% alpha_hil = abs(hilbert(alpha));
+% beta_hil = abs(hilbert(beta));
+
+alpha_env = envelope(alpha,100,'peak');
+beta_env = envelope(beta,100,'peak');
+
+figure
+subplot(2,1,1)
+plot(t,alpha,'linewidth',1.3)
+hold on
+plot(t,alpha_env,'linewidth',2)
+xlim([0 length(alpha)/fs])
+title('alpha')
+
+subplot(2,1,2)
+plot(t,beta,'linewidth',1.3)
+hold on
+plot(t,beta_env,'linewidth',2)
+xlim([0 length(alpha)/fs])
+title('beta')
 
 %% Force, alpha-band & beta-band EEG, Reaction onset 2023/4/11
 
@@ -134,18 +184,18 @@ x_Force = Force';
 cnt = 1;
 x = t(1:300);
 
-reac = 0;
+reac_flag = 0;
 
 for i = 1:length(t)
     if x_Force(i) < -0.02
-        reac = reac + 1;
+        reac_flag = reac_flag + 1;
         % disp(cnt);
-        if (mod_cuestime(cnt)*fs <= i && i < mod_cuestime(cnt)*fs + 2000) && reac == 1
+        if (mod_cuestime(cnt)*fs <= i && i < mod_cuestime(cnt)*fs + 2000) && reac_flag == 1
             
             move_onset(cnt) = i;
             cnt = cnt + 1;
         end
-        reac = 0;
+        reac_flag = 0;
     end
 
     if cnt >= 21
@@ -433,38 +483,42 @@ title('安静時の脳波');
 
 figure('Position',[1 1 500 350]);
 time = t(1:8000);
-alpha_plot = alpha(1501:9500);
-beta_plot = beta(1501:9500);
+
+EEG_plot = EEG(1501:9500);
+EMG_plot = EMG(1501:9500);
+% alpha_plot = alpha(1501:9500);
+% beta_plot = beta(1501:9500);
 
 %alpha_plot_hil = alpha_hil(1501:9500);
 
-subplot(2,1,1);
-plot(time,alpha_plot,'linewidth',1.2); 
+% subplot(2,1,1);
+plot(time,EEG_plot,'linewidth',1.2); 
 
 set(gca,'FontSize',16);
 
 xlim([0 5]);
-ylim([-0.3 0.3]);
-yticks([-0.3 0 0.3]);
+ylim([-3 3]);
+yticks([-3 0 3]);
 
-ylabel('EEG(\muV)');
-title('alpha-band');
-
-box off;
-
-subplot(2,1,2);
-plot(time,beta_plot,'linewidth',1.2); 
-
-set(gca,'FontSize',16);
-
-xlim([0 5]);
-ylim([-0.5 0.5]);
-
-xlabel('time(s)');
-ylabel('EEG(\muV)');
-title('beta-band');
+xlabel('time(s)')
+ylabel('Amplitude(\muV)');
+% title('EEG');
 
 box off;
+
+% subplot(2,1,2);
+% plot(time,EMG_plot,'linewidth',1.2); 
+% 
+% set(gca,'FontSize',16);
+% % 
+% xlim([0 5]);
+% ylim([-0.5 0.5]);
+% 
+% xlabel('time(s)');
+% ylabel('EEG(\muV)');
+% title('beta-band');
+
+% box off;
 
 %% 包絡線(mone_3:72秒付近)
 
