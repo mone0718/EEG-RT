@@ -39,21 +39,21 @@ beta = EEG_beta(:,2) - (EEG_beta(:,3) + EEG_beta(:,4) + EEG_beta(:,5) + EEG_beta
 
 t = 0:1/fs:(length(alpha)-1)/fs;
 
-% figure;
-% subplot(3,1,1);
-% plot(t,Force,'linewidth',1.3);
-% xlim([0 length(alpha)/fs]);
-% title('Force');
-% 
-% subplot(3,1,2);
-% plot(t,alpha*10,'linewidth',1.3);
-% xlim([0 length(alpha)/fs]);
-% title('alpha');
-% 
-% subplot(3,1,3);
-% plot(t,beta*10,'linewidth',1.3);
-% xlim([0 length(alpha)/fs]);
-% title('beta');
+figure;
+subplot(3,1,1);
+plot(t,Force,'linewidth',1.3);
+xlim([0 length(alpha)/fs]);
+title('Force');
+
+subplot(3,1,2);
+plot(t,alpha*10,'linewidth',1.3);
+xlim([0 length(alpha)/fs]);
+title('alpha');
+
+subplot(3,1,3);
+plot(t,beta*10,'linewidth',1.3);
+xlim([0 length(alpha)/fs]);
+title('beta');
 
 %% EMG, alpha-band & beta-band EEG, Reaction onset 2023/4/30
 

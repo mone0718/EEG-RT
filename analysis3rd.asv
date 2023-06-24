@@ -1,4 +1,6 @@
 % 2023/05/16
+% 3rd presentation
+% rEMG,theta,alpha,beta 波形 RT短い/長い 5トライアル分
 
 clear
 close all
@@ -19,6 +21,8 @@ disp(select_dir);
 files = dir(fullfile(select_dir, 'random*.mat'));
 
 %% RT計算、plot
+
+close all
 
 move_onset = zeros(20,numel(files));
 RT = zeros(20,numel(files));
@@ -63,13 +67,13 @@ for i = 1:numel(files)
     theta = EEG_theta(:,2) - (EEG_theta(:,3) + EEG_theta(:,4) + EEG_theta(:,5) + EEG_theta(:,6))/4;
     
     % α帯
-    EEG_alpha = datafilter(data,8,13,fs)*100;
+    EEG_alpha = datafilter(data,8,12,fs)*100;
     alpha = EEG_alpha(:,2) - (EEG_alpha(:,3) + EEG_alpha(:,4) + EEG_alpha(:,5) + EEG_alpha(:,6))/4;
 
 %     alpha_all = vertcat(alpha_all,alpha);
     
     % β帯
-    EEG_beta = datafilter(data,15,35,fs)*100;
+    EEG_beta = datafilter(data,13,35,fs)*100;
     beta = EEG_beta(:,2) - (EEG_beta(:,3) + EEG_beta(:,4) + EEG_beta(:,5) + EEG_beta(:,6))/4;
 
 %     beta_all(:,i) = beta;
@@ -85,21 +89,24 @@ for i = 1:numel(files)
     
     % キューの3秒前のrEMGの平均と標準偏差
     for trial_num = 1:20
-        judge_start = round(cue_time(trial_num) * fs - 3000 + 1);
-        judge_end = judge_start + 3000;
-    
+        judge_end = round(cue_time(trial_num) * fs); %キューのタイミング
+        judge_start = judge_end - 3000; %そこから3秒前
+        
+        % 標準偏差と平均
         [SD(trial_num,i),Mean(trial_num,i)] = std(rEMG(judge_start:judge_end));
     
-        cnt = judge_end;
-        reac_flag = false;
+        cnt = judge_end; %キューのタイミング(使い回し)
+        reac_flag = false; 
     
+        % キューの時点から判定
+        % rEMGの値が平均+10SD超えた時点をonsetに保存
         while ~reac_flag
     
             cnt = cnt + 1;
             
             if rEMG(cnt) > Mean(trial_num,i) + SD(trial_num,i)*10
-                move_onset(trial_num,i) = cnt/fs;
-                RT(trial_num,i) = move_onset(trial_num,i) - cue_time(trial_num);
+                move_onset(trial_num,i) = cnt/fs; %秒単位
+                RT(trial_num,i) = move_onset(trial_num,i) - cue_time(trial_num); %onsetとcueの差
                 reac_flag = true; 
             end
             
@@ -109,67 +116,89 @@ for i = 1:numel(files)
     % そのセットの中で1番RT長い試行
     [RTmax,RTmax_index] = max(RT(:,i));
 
-    disp(RTmax)
+%     % そのセットの中で1番RT短い試行
+%     [RTmax,RTmax_index] = min(RT(:,i));
 
+    disp(RTmax)
+    
+%------------------ figure描画(rEMG,theta,alpha,beta) --------------------
     cue_plot = round(cue_time(RTmax_index)*fs);
-    start = cue_plot - 3000;
+    start = cue_plot - 3000; 
     fin = start + 5000 - 1;
 
-    time = t(1:5000);
+%     time = t(1:5000);
+    time = -3:1/fs:2-1/fs;
 
     rEMG_plot = rEMG(start:fin);
 
     alpha_plot = alpha(start:fin);
     beta_plot = beta(start:fin);
+    theta_plot = theta(start:fin);
 
-    alpha_env = envelope(alpha,100,'peak');
-    beta_env = envelope(beta,50,'peak');
+    alpha_hil = abs(hilbert(alpha));
+    beta_hil = abs(hilbert(beta));
     
-    alpha_env_plot = alpha_env(start:fin);
-    beta_env_plot = beta_env(start:fin);
+    alpha_hil_plot = alpha_hil(start:fin);
+    beta_hil_plot = beta_hil(start:fin);
 
-    figure('Position',[1,400,500,600])
+    figure('Position',[1,500,500,600])
 
-    subplot(3,1,1)
+    % rEMG
+    subplot(4,1,1)
 
-    plot(time,rEMG_plot,'linewidth',1.3)
+    plot(time,rEMG_plot,'linewidth',1.5)
     xlim([0 length(alpha_plot)/fs])
-    xline((cue_plot - start)/fs,'LineWidth',1)
-    xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
+    xline((cue_plot - start)/fs,'LineWidth',1.2)
+    xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1.2)
 %     xlabel('time(s)')
-    ylabel('Amplitude(\muV)')
-    title('rEMG')
+%     ylabel('Amplitude(\muV)')
+    title('rEMG','FontWeight','bold')
 
-    set(gca,'fontsize',14,'LineWidth', 0.7)
+    set(gca,'fontsize',17,'LineWidth', 0.7,'FontWeight','bold')
 
-    subplot(3,1,2)
-    plot(time,alpha_plot,'linewidth',1.3)
-    hold on
-    plot(time,alpha_env_plot,'linewidth',2)
+    % theta
+    subplot(4,1,2)
+
+    plot(time,theta_plot,'linewidth',1.5)
     xlim([0 length(alpha_plot)/fs])
     ylim([-5,5])
     xline((cue_plot - start)/fs,'LineWidth',1)
     xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
 %     xlabel('time(s)')
-    ylabel('Amplitude(\muV)')
-    title('alpha-band EEG')
+    ylabel('Amplitude(\muV)','fontsize',25)
+    title('theta-band EEG','FontWeight','bold')
 
-    set(gca,'fontsize',14,'LineWidth', 0.7)
+    set(gca,'fontsize',17,'LineWidth', 0.7,'FontWeight','bold')
 
-    subplot(3,1,3)
+    % alpha
+    subplot(4,1,3)
+    plot(time,alpha_plot,'linewidth',1.5)
+    hold on
+    plot(time,alpha_hil_plot,'linewidth',2)
+    xlim([0 length(alpha_plot)/fs])
+    ylim([-5,5])
+    xline((cue_plot - start)/fs,'LineWidth',1)
+    xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
+%     xlabel('time(s)')
+    ylabel('Amplitude(\muV)','fontsize',25)
+    title('alpha-band EEG','FontWeight','bold')
+
+    set(gca,'fontsize',17,'LineWidth', 0.7,'FontWeight','bold')
+
+    % beta
+    subplot(4,1,4)
     plot(time,beta_plot,'linewidth',1.3)
     hold on
-    plot(time,beta_env_plot,'linewidth',2)
+    plot(time,beta_hil_plot,'linewidth',2)
     xlim([0 length(alpha_plot)/fs])
     ylim([-5,5])
     xline((cue_plot - start)/fs,'LineWidth',1)
     xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
     xlabel('time(s)')
-    ylabel('Amplitude(\muV)')
-    title('beta-band EEG')
+%     ylabel('Amplitude(\muV)')
+    title('beta-band EEG','FontWeight','bold')
 
-    set(gca,'fontsize',14,'LineWidth', 0.7)
-
+    set(gca,'fontsize',17,'LineWidth', 0.7,'FontWeight','bold')
 
     folder = '/Users/mone/Documents/MATLAB/EEG-RT/figure_sub';
     figname = sprintf('%s_short_%d.png',subject_name,i);
@@ -203,53 +232,6 @@ end
 %     
 % figure
 % stackedplot(t,output_data)
-
-%% データ切り出してplot
-
-% time = t(1:5000);
-% 
-% % データのソートと上位5つの取得
-% [RT_sort, RT_index] = sort(RT(:)); % 行列をベクトルに変換し、降順にソート
-% 
-% short = RT_sort(1:4);
-% short_index = RT_index(1:4);
-% 
-% long = RT_sort(numel(RT_sort)-3:numel(RT_sort)); % 上位5つの値を取得
-% long_index = RT_index(numel(RT_sort)-3:numel(RT_sort)); % 上位の値に対応するインデックスを取得
-% 
-% % 元の行と列の情報の取得
-% [short_num_row, short_num_col] = size(RT);
-% [short_index_row, short_index_col] = ind2sub([short_num_row, short_num_col], short_index);
-% 
-% [long_num_row, long_num_col] = size(RT);
-% [long_index_row, long_index_col] = ind2sub([long_num_row, long_num_col], long_index);
-% 
-% for i = 1:numel(long)
-%     if isempty(files)
-%         disp('ファイルが見つかりませんでした。')
-%         disp(i)
-%         disp(j)
-%     else
-%         for j = 1:numel(files)
-%             filename = files(j).name; % ファイル名を取得
-%             if contains(filename, '3') % ファイル名に '3' が含まれるか判定
-%                 filePath = fullfile(select_dir, filename);
-%     
-%                 load(filePath)
-% 
-%                 plot_start = round(cue_all(short_index_row(i),short_index_col(i))*fs - 3000);
-%                 plot_end = plot_start + 4999;
-%                 
-% 
-% %                 top_alpha = alpha(:);
-%                 
-%                 break % 条件に一致する最初のファイルをloadした後、ループを終了
-%             end
-%         end
-%     end
-% end
-
-
 
 %% 脳波のバンドパス
 

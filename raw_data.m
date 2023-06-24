@@ -14,6 +14,8 @@
 % EEG Sens Low (x1000)
 % (多分)
 
+close all
+clear
 
 %サンプリング周波数
 fs = 1000;

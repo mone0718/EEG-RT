@@ -3,6 +3,11 @@
 clear
 close all
 
+%被験者名
+defaultanswer = {'mone'};
+subject = inputdlg({'subject'},'Input the answer',1,defaultanswer);
+subject_name = char(subject(1));
+
 fs = 1000;
 
 % ディレクトリを選択
@@ -88,7 +93,7 @@ for i = 1:numel(files)
     
             cnt = cnt + 1;
             
-            if rEMG(cnt) > SD(trial_num,i)*10
+            if rEMG(cnt) > Mean(trial_num,i) + SD(trial_num,i)*10
                 move_onset(trial_num,i) = cnt/fs;
                 RT(trial_num,i) = move_onset(trial_num,i) - cue_time(trial_num);
                 reac_flag = true; 
@@ -119,9 +124,9 @@ for i = 1:numel(files)
     alpha_env_plot = alpha_env(start:fin);
     beta_env_plot = beta_env(start:fin);
 
-    figure('Position',[1,400,500,600])
+    figure('Position',[1,400,400,400])
 
-    subplot(311)
+    subplot(211)
 
     plot(time,rEMG_plot,'linewidth',1.3)
     xlim([0 length(alpha_plot)/fs])
@@ -129,11 +134,11 @@ for i = 1:numel(files)
     xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
 %     xlabel('time(s)')
     ylabel('Amplitude(\muV)')
-    title('rEMG')
+    title('rEMG','FontWeight','bold')
 
-    set(gca,'fontsize',14,'LineWidth', 0.7)
+    set(gca,'fontsize',17,'LineWidth', 0.7,'FontWeight','bold')
 
-    subplot(312)
+    subplot(212)
     plot(time,alpha_plot,'linewidth',1.3)
     hold on
     plot(time,alpha_env_plot,'linewidth',2)
@@ -141,30 +146,32 @@ for i = 1:numel(files)
     ylim([-5,5])
     xline((cue_plot - start)/fs,'LineWidth',1)
     xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
+    xlabel('time(s)')
+    title('EEG','FontWeight','bold')
 %     xlabel('time(s)')
     ylabel('Amplitude(\muV)')
-    title('alpha-band EEG')
+%     title('EEG')
 
-    set(gca,'fontsize',14,'LineWidth', 0.7)
+    set(gca,'fontsize',17,'LineWidth', 0.7,'FontWeight','bold')
 
-    subplot(313)
-    plot(time,beta_plot,'linewidth',1.3)
-    hold on
-    plot(time,beta_env_plot,'linewidth',2)
-    xlim([0 length(alpha_plot)/fs])
-    ylim([-5,5])
-    xline((cue_plot - start)/fs,'LineWidth',1)
-    xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
-    xlabel('time(s)')
-    ylabel('Amplitude(\muV)')
-    title('beta-band EEG')
+%     subplot(313)
+%     plot(time,beta_plot,'linewidth',1.3)
+%     hold on
+%     plot(time,beta_env_plot,'linewidth',2)
+%     xlim([0 length(alpha_plot)/fs])
+%     ylim([-5,5])
+%     xline((cue_plot - start)/fs,'LineWidth',1)
+%     xline(move_onset(RTmax_index,i)-start/fs,'-.','LineWidth',1)
+%     xlabel('time(s)','FontWeight','bold')
+%     ylabel('Amplitude(\muV)','FontWeight','bold')
+%     title('beta-band EEG','FontWeight','bold')
+% 
+%     set(gca,'fontsize',14,'LineWidth', 0.7)
 
-    set(gca,'fontsize',14,'LineWidth', 0.7)
 
-
-    folder = '/Users/mone/Documents/MATLAB/EEG-RT/figure';
-    figname = sprintf('%s_long_%d',subject_name,);
-    saveas()
+    folder = '/Users/mone/Documents/MATLAB/EEG-RT/figure_sub';
+    figname = sprintf('%s_short_%d.png',subject_name,i);
+    saveas(gcf, fullfile(folder, figname))
 
 %     figure('Position',[1,1,400,500])
 %     subplot(311)
