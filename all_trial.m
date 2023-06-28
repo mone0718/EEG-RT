@@ -16,7 +16,7 @@ P_START = -3;
 P_END = 2;
 RANGE = P_END - P_START;
 
-WIDTH = 400;
+WIDTH = 500;
 HEIGHT = 500;
 % FONTSIZE = 16;
 
@@ -99,13 +99,12 @@ for i = 1
             
         end
         
-        %------------------ figure描画(rEMG,theta,alpha,beta) --------------------
+        %% ------------------ figure描画(rEMG,theta,alpha,beta) --------------------
         cue_plot = round(cue_time(trial_num)*FS);
         start = cue_plot + P_START*FS; 
         fin = start + RANGE*FS - 1;
     
-%         time = t(1:5000);
-        time = P_START:1/FS:P_END-1/FS;
+        time = P_START : 1/FS : P_END-1 / FS;
     
         rEMG_plot = rEMG(start:fin);
     
@@ -116,11 +115,14 @@ for i = 1
         alpha_hil_plot = alpha_hil(start:fin);
         beta_hil_plot = beta_hil(start:fin);
     
+
         figure('Position',[1,1,WIDTH,HEIGHT])
+        tiledlayout(4,1,'TileSpacing','loose','Padding','loose')
     
         % rEMG
-        subplot(4,1,1)
-    
+%         subplot(4,1,1)
+
+        nexttile
         plot(time,rEMG_plot,'linewidth',1.5)
         xlim([P_START,P_END])
         xline(0,'LineWidth',1.2)
@@ -135,7 +137,9 @@ for i = 1
         set(gca,'fontsize',10,'LineWidth', 0.7,'FontWeight','bold')
         
         % alpha
-        subplot(4,1,2)
+%         subplot(4,1,2)
+
+        nexttile
         plot(time,alpha_plot,'linewidth',1)
         hold on
         plot(time,alpha_hil_plot,'linewidth',1.5)
@@ -150,7 +154,9 @@ for i = 1
         set(gca,'LineWidth', 0.7,'FontWeight','bold')
     
         % beta
-        subplot(4,1,3)
+%         subplot(4,1,3)
+
+        nexttile
         plot(time,beta_plot,'linewidth',1)
         hold on
         plot(time,beta_hil_plot,'linewidth',1.5)
@@ -164,9 +170,10 @@ for i = 1
     
         set(gca,'fontsize',10,'LineWidth', 0.7,'FontWeight','bold')
 
-                % theta
-        subplot(4,1,4)
-    
+        % theta
+%         subplot(4,1,4)
+        
+        nexttile
         plot(time,theta_plot,'linewidth',1.5)
         xlim([P_START,P_END])
         ylim([-ceil(max(abs(theta_plot))),ceil(max(abs(theta_plot)))])
@@ -178,6 +185,13 @@ for i = 1
     
         set(gca,'fontsize',10,'LineWidth', 0.7,'FontWeight','bold')
 
+        folder = '/Users/mone/Documents/MATLAB/EEG-RT/figure_sub';
+        filename = sprintf('%.3f_%d.png',RT(trial_num,i),trial_num);
+        exportgraphics(gcf, fullfile(folder, filename))
+
+%         folder = '/Users/mone/Documents/MATLAB/EEG-RT/figure_all';
+%         filename = sprintf('%.3f_%d.png',RT(trial_num,i),trial_num);
+%         saveas(gcf, fullfile(folder, filename))
 
     end
 end
